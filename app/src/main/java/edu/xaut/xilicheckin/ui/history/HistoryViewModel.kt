@@ -1,0 +1,25 @@
+package edu.xaut.xilicheckin.ui.history
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import edu.xaut.xilicheckin.data.local.RecordEntity
+import edu.xaut.xilicheckin.data.repo.RecordRepository
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class HistoryViewModel @Inject constructor(
+    private val repo: RecordRepository,
+) : ViewModel() {
+
+    val records: StateFlow<List<RecordEntity>> = repo.observe()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun clear() {
+        viewModelScope.launch { repo.clear() }
+    }
+}

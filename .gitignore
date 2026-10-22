@@ -1,0 +1,22 @@
+# Gradle / Android
+build/
+.gradle/
+.kotlin/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# 构建产物与签名
+*.apk
+*.aab
+*.jks
+*.keystore
+输出/
+
+# 临时文件
+.work/
+.DS_Store
+Thumbs.db
