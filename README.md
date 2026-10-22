@@ -105,7 +105,9 @@ gradle testDebugUnitTest assembleDebug --offline
 # app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Windows 上可直接双击 `打包.bat`。预编译安装包见 [Releases](../../releases)。
+Windows 上可直接双击 `打包.bat`（会读环境变量里的 `JAVA_HOME` / `ANDROID_HOME`）。
+
+**不想自己编译？** 下载预编译安装包：[Releases → iXiliCheckin-v1.2.0.apk](https://github.com/xiebrooooo/ixaut-checkin/releases/latest)（Android 8.0+，debug 签名，安装时需允许「未知来源应用」）。
 
 单测是纯 JVM 的（不需要模拟器）：加密算法 CBC 行为回归、表单解析、字段 label 识别。
 
@@ -131,6 +133,7 @@ Windows 上可直接双击 `打包.bat`。预编译安装包见 [Releases](../..
 5. 非官方实现，接口随时可能变更；教务系统升级后可能失效。
 6. 图形验证码由服务端按会话风控触发，程序只负责弹出与重试，字符仍需人眼识别。
 7. `keyCur` 取不到时 `inputField_oljsq26s` 不提交（不伪造值），若平台将来强校验该字段可能失败。
+8. Release 里的 APK 是 **debug 签名**，仅供自用分发；如需正式签名请自行生成 keystore 并配置 `signingConfigs`。
 
 ---
 
