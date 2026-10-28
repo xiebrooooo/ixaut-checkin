@@ -56,6 +56,12 @@ data class SignResult(
     val status: SignStatus,
     val detail: String,
     val at: Long = System.currentTimeMillis(),
+    /**
+     * true = 界面预览用的假结果。
+     * 只为看清「成功态」长什么样，**从未向服务端提交任何请求**，
+     * 也不会写入记录表。真实签到结果永远以 status + 服务端响应为准。
+     */
+    val simulated: Boolean = false,
 )
 
 /** 接口体检的一行结果 */

@@ -7,8 +7,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -34,6 +36,8 @@ import edu.xaut.xilicheckin.ui.sign.SignViewModel
 @Composable
 fun AppRoot() {
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    // 每次自增 = 手动点了一次「检查更新」
+    var updateTick by rememberSaveable { mutableIntStateOf(0) }
     val signVm: SignViewModel = hiltViewModel()
     val accountsVm: AccountsViewModel = hiltViewModel()
     val historyVm: HistoryViewModel = hiltViewModel()
@@ -43,6 +47,11 @@ fun AppRoot() {
         topBar = {
             TopAppBar(
                 title = { Text("i西理签到") },
+                actions = {
+                    IconButton(onClick = { updateTick++ }) {
+                        Icon(Icons.Filled.SystemUpdate, contentDescription = "检查更新")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                 ),
@@ -72,6 +81,8 @@ fun AppRoot() {
         },
     ) { pad ->
         CaptchaHost()
+        // 应用内更新：启动静默检查一次，顶栏图标可手动再查
+        UpdateHost(requestKey = updateTick)
         Box(Modifier.fillMaxSize().padding(pad)) {
             when (tab) {
                 0 -> SignScreen(signVm)

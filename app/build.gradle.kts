@@ -13,8 +13,8 @@ android {
         applicationId = "edu.xaut.xilicheckin"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.2.0"
+        versionCode = 3
+        versionName = "1.3.0"
         vectorDrawables { useSupportLibrary = true }
         // ML Kit 自带 4 个 ABI 的 native 库，只留真机在用的（x86 只给老模拟器，去掉）
 
@@ -81,6 +81,8 @@ dependencies {
 
     // 条码识别：ML Kit bundled 版（模型 + libbarhopper_v3.so 打进包，不依赖 Google Play 服务）
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
+    // 只用来「生成」分享二维码（编码）；解码仍然走 ML Kit
+    implementation("com.google.zxing:core:3.5.3")
     implementation("androidx.camera:camera-core:1.3.4")
     implementation("androidx.camera:camera-camera2:1.3.4")
     implementation("androidx.camera:camera-lifecycle:1.3.4")

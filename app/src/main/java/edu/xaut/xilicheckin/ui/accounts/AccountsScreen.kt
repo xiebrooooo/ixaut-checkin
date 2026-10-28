@@ -14,6 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -37,6 +39,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import edu.xaut.xilicheckin.domain.Account
 import edu.xaut.xilicheckin.domain.AccountTest
+import edu.xaut.xilicheckin.domain.ShareBag
+import edu.xaut.xilicheckin.ui.scan.ScannerScreen
 
 @Composable
 fun AccountsScreen(vm: AccountsViewModel) {
@@ -44,6 +48,13 @@ fun AccountsScreen(vm: AccountsViewModel) {
     val test by vm.test.collectAsState()
     var showAdd by remember { mutableStateOf(false) }
     var showImport by remember { mutableStateOf(false) }
+
+    // 分享 / 扫码导入
+    val share by vm.share.collectAsState()
+    val shareImport by vm.shareImport.collectAsState()
+    var scanShares by remember { mutableStateOf(false) }
+    var pendingShare by remember { mutableStateOf<String?>(null) }
+    var scanTip by remember { mutableStateOf<String?>(null) }
 
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Row(
@@ -64,6 +75,12 @@ fun AccountsScreen(vm: AccountsViewModel) {
                 )
             }
             Row {
+                IconButton(onClick = { vm.prepareShare() }, enabled = accounts.isNotEmpty()) {
+                    Icon(Icons.Filled.Share, contentDescription = "分享账号")
+                }
+                IconButton(onClick = { scanShares = true }) {
+                    Icon(Icons.Filled.QrCodeScanner, contentDescription = "扫描并导入")
+                }
                 IconButton(onClick = { showImport = true }) {
                     Icon(Icons.Filled.FileDownload, contentDescription = "批量导入")
                 }
@@ -131,6 +148,62 @@ fun AccountsScreen(vm: AccountsViewModel) {
                 vm.importText(text)
                 showImport = false
             },
+        )
+    }
+
+    // ---- 分享：我的二维码 ----
+    share?.let { st ->
+        ShareQrDialog(state = st, onDismiss = { vm.clearShare() })
+    }
+
+    // ---- 导入：扫码 → 输口令 → 预览 → 确认 ----
+    if (scanShares) {
+        ScannerScreen(
+            onDecoded = { text ->
+                scanShares = false
+                if (ShareBag.looksLikeShare(text)) {
+                    vm.clearShareImport()
+                    pendingShare = text
+                } else {
+                    scanTip = "这张码不是账号分享码。签到二维码请到「签到」页扫。"
+                }
+            },
+            onClose = { scanShares = false },
+        )
+    }
+
+    val decoded = shareImport
+    if (pendingShare != null && decoded?.accounts.isNullOrEmpty()) {
+        SharePasscodeDialog(
+            error = decoded?.error,
+            onDismiss = {
+                pendingShare = null
+                vm.clearShareImport()
+            },
+            onConfirm = { code -> pendingShare?.let { vm.decodeShare(it, code) } },
+        )
+    }
+
+    if (decoded != null && decoded.accounts.isNotEmpty()) {
+        ShareImportPreviewDialog(
+            state = decoded,
+            onDismiss = {
+                pendingShare = null
+                vm.clearShareImport()
+            },
+            onConfirm = {
+                vm.confirmShareImport()
+                pendingShare = null
+            },
+        )
+    }
+
+    scanTip?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { scanTip = null },
+            title = { Text("扫到的不是分享码") },
+            text = { Text(msg) },
+            confirmButton = { TextButton(onClick = { scanTip = null }) { Text("好") } },
         )
     }
 }

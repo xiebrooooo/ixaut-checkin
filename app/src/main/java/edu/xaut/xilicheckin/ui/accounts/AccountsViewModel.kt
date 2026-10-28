@@ -7,6 +7,7 @@ import edu.xaut.xilicheckin.data.repo.AccountRepository
 import edu.xaut.xilicheckin.domain.Account
 import edu.xaut.xilicheckin.domain.AccountTest
 import edu.xaut.xilicheckin.domain.SignEngine
+import edu.xaut.xilicheckin.domain.ShareBag
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -88,4 +89,77 @@ class AccountsViewModel @Inject constructor(
     fun clearTest() {
         _test.value = AccountTestState()
     }
+
+    // ---------------------------------------------------------- 分享 / 导入
+
+    /** 分享二维码状态：payload 是加密后的串，passcode 只显示给自己看 */
+    private val _share = MutableStateFlow<ShareState?>(null)
+    val share: StateFlow<ShareState?> = _share
+
+    /** 扫到的分享码解开后的预览 */
+    private val _shareImport = MutableStateFlow<ShareImport?>(null)
+    val shareImport: StateFlow<ShareImport?> = _shareImport
+
+    /** 生成分享二维码：默认只分享「启用中」的账号 */
+    fun prepareShare() {
+        viewModelScope.launch {
+            val list = repo.enabled()
+            if (list.isEmpty()) {
+                _share.value = ShareState(payload = "", passcode = "", count = 0, error = "没有启用的账号")
+                return@launch
+            }
+            // 每次分享换一个随机口令：上次的口令不该能解开这次的码
+            val passcode = (100_000 + (Math.random() * 900_000).toInt()).toString()
+            runCatching { ShareBag.encode(list, passcode) }
+                .onSuccess { _share.value = ShareState(payload = it, passcode = passcode, count = list.size) }
+                .onFailure {
+                    _share.value = ShareState(
+                        payload = "", passcode = "", count = 0,
+                        error = it.message ?: "生成分享码失败",
+                    )
+                }
+        }
+    }
+
+    fun clearShare() {
+        _share.value = null
+    }
+
+    /** 扫到分享码 + 口令 → 解出账号列表（先不写库） */
+    fun decodeShare(payload: String, passcode: String) {
+        viewModelScope.launch {
+            _shareImport.value = runCatching { ShareBag.decode(payload, passcode) }
+                .fold(
+                    onSuccess = { ShareImport(accounts = it) },
+                    onFailure = { ShareImport(error = it.message ?: "解不开这个分享码") },
+                )
+        }
+    }
+
+    fun clearShareImport() {
+        _shareImport.value = null
+    }
+
+    /** 确认导入：同号覆盖密码，新学号新增；票据/启用状态沿用本机已有设置 */
+    fun confirmShareImport() {
+        val list = _shareImport.value?.accounts ?: return
+        viewModelScope.launch {
+            list.forEach { repo.upsert(it.account, it.password, it.name) }
+            _shareImport.value = null
+        }
+    }
 }
+
+/** 分享二维码 */
+data class ShareState(
+    val payload: String,
+    val passcode: String,
+    val count: Int,
+    val error: String? = null,
+)
+
+/** 扫码导入的预览结果 */
+data class ShareImport(
+    val accounts: List<Account> = emptyList(),
+    val error: String? = null,
+)
